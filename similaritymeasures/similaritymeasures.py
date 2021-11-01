@@ -890,10 +890,10 @@ def dtw_path(d):
 
 def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
     r"""
-    Compute the Dynamic Time Warping distance.
+    Compute the Derivative Dynamic Time Warping distance.
 
-    This computes a generic Dynamic Time Warping (DTW) distance and follows
-    the algorithm from [1]_. This can use all distance metrics that are
+    This computes a generic Derivative Dynamic Time Warping (DDTW) distance and
+    follows the algorithm from [1]_. This can use all distance metrics that are
     available in scipy.spatial.distance.cdist.
 
     Parameters
@@ -941,13 +941,13 @@ def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
     Retruns
     -------
     r : float
-        DTW distance.
+        DDTW distance.
     d : ndarray (2-D)
         Cumulative distance matrix
 
     Notes
     -----
-    The DTW distance is d[-1, -1].
+    The DDTW distance is d[-1, -1].
 
     This has O(M, P) computational cost.
 
@@ -971,6 +971,11 @@ def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
         USA, 855, pp.1-23.
         http://seninp.github.io/assets/pubs/senin_dtw_litreview_2008.pdf
 
+    .. [2] Eamonn J.Keogh and Michael J. Pazzant. Derivative Dynamic Time Warping.
+        Department of Information and Computer Science University of California,
+        Irvine, California 92697 USA.
+        https://www.ics.uci.edu/~pazzani/Publications/sdm01.pdf
+
     Examples
     --------
     >>> # Generate random experimental data
@@ -985,13 +990,13 @@ def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
     >>> num_data = np.zeros((100, 2))
     >>> num_data[:, 0] = x
     >>> num_data[:, 1] = y
-    >>> r, d = dtw(exp_data, num_data)
+    >>> r, d = ddtw(exp_data, num_data)
 
     The euclidean distance is used by default. You can use metric and **kwargs
     to specify different types of distance metrics. The following example uses
     the city block or Manhattan distance between points.
 
-    >>> r, d = dtw(exp_data, num_data, metric='cityblock')
+    >>> r, d = ddtw(exp_data, num_data, metric='cityblock')
 
     """
     c = distance.cdist(exp_data, num_data, metric=metric, **kwargs)
@@ -1005,16 +1010,23 @@ def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
         d[0, j] = d[0, j-1] + c[0, j]
     for i in range(1, n):
         for j in range(1, m):
-            d[i, j] = c[i, j] + min((d[i-1, j], d[i, j-1], d[i-1, j-1]))
+            if i == 1 and j ==1:
+                d[i, j] = c[i, j] + min((d[i-1, j], d[i, j-1], d[i-1, j-1]))
+            elif i == 1:
+                d[i, j] = c[i, j] + min((d[i-1, j-2], d[i-1, j-1], d[i-1, j-1]))
+            elif j == 1:
+                d[i, j] = c[i, j] + min((d[i-1, j-1], d[i-2, j-1], d[i-1, j-1]))
+            else:
+                d[i, j] = c[i, j] + min((d[i-1, j-2], d[i-2, j-1], d[i-1, j-1]))
     return d[-1, -1], d
 
 
 def ddtw_path(d):
     r"""
-    Calculates the optimal DTW path from a given DTW cumulative distance
+    Calculates the optimal DDTW path from a given DDTW cumulative distance
     matrix.
 
-    This function returns the optimal DTW path using the back propagation
+    This function returns the optimal DDTW path using the back propagation
     algorithm that is defined in [1]_. This path details the index from each
     curve that is being compared.
 
@@ -1026,7 +1038,7 @@ def ddtw_path(d):
     Returns
     -------
     path : ndarray (2-D)
-        The optimal DTW path.
+        The optimal DDTW path.
 
     Notes
     -----
@@ -1040,9 +1052,14 @@ def ddtw_path(d):
         USA, 855, pp.1-23.
         http://seninp.github.io/assets/pubs/senin_dtw_litreview_2008.pdf
 
+    .. [2] Eamonn J.Keogh and Michael J. Pazzant. Derivative Dynamic Time Warping.
+        Department of Information and Computer Science University of California,
+        Irvine, California 92697 USA.
+        https://www.ics.uci.edu/~pazzani/Publications/sdm01.pdf
+
     Examples
     --------
-    First calculate the DTW cumulative distance matrix.
+    First calculate the DDTW cumulative distance matrix.
 
     >>> # Generate random experimental data
     >>> x = np.random.random(100)
@@ -1056,11 +1073,11 @@ def ddtw_path(d):
     >>> num_data = np.zeros((100, 2))
     >>> num_data[:, 0] = x
     >>> num_data[:, 1] = y
-    >>> r, d = dtw(exp_data, num_data)
+    >>> r, d = ddtw(exp_data, num_data)
 
-    Now you can calculate the optimal DTW path
+    Now you can calculate the optimal DDTW path
 
-    >>> path = dtw_path(d)
+    >>> path = ddtw_path(d)
 
     You can visualize the path on the cumulative distance matrix using the
     following code.
@@ -1086,10 +1103,12 @@ def ddtw_path(d):
         elif j == 0:
             i = i - 1
         else:
-            temp_step = min([d[i-1, j], d[i, j-1], d[i-1, j-1]])
-            if d[i-1, j] == temp_step:
+            temp_step = min([d[i-1, j-2], d[i-2, j-1], d[i-1, j-1]])
+            if d[i-1, j-2] == temp_step:
                 i = i - 1
-            elif d[i, j-1] == temp_step:
+                j = j - 2
+            elif d[i-2, j-1] == temp_step:
+                i = i - 2
                 j = j - 1
             else:
                 i = i - 1
