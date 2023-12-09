@@ -915,7 +915,6 @@ def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
     **kwargs : dict, optional
         Extra arguments to `metric`: refer to each metric documentation in
         scipy.spatial.distance.
-
         Some examples:
 
         p : scalar
@@ -938,7 +937,7 @@ def ddtw(exp_data, num_data, metric='euclidean', **kwargs):
             The output array
             If not None, the distance matrix Y is stored in this array.
 
-    Retruns
+    Returns
     -------
     r : float
         DDTW distance.
